@@ -203,7 +203,7 @@ export default function App() {
     }, []);
 
     // WebSocket connection function
-    const connectWebSocket = () => {
+    const connectWebSocket = useCallback(() => {
         const websocket = new WebSocket("ws://localhost:3001");
 
         websocket.onopen = () => {
@@ -249,7 +249,7 @@ export default function App() {
         websocket.onerror = () => {
             setServerStatus("disconnected");
         };
-    };
+    }, [activeWindow]);
 
     const handleTerminalData = useCallback(
         (data: string) => {
@@ -266,7 +266,7 @@ export default function App() {
                 }
             }
         },
-        [ws],
+        [ws, connectWebSocket],
     );
 
     const handleTerminalResize = useCallback(
