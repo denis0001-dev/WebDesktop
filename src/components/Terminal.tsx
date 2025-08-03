@@ -147,6 +147,33 @@ export default function TerminalComponent({
         }
     }, [onRef]);
 
+    // Handle container resize
+    useEffect(() => {
+        if (!terminalRef.current || !fitAddon.current) return;
+
+        const resizeObserver = new ResizeObserver(() => {
+            if (fitAddon.current && terminalRef.current) {
+                try {
+                    fitAddon.current.fit();
+                    // Get the new dimensions and notify parent
+                    if (terminalInstance.current) {
+                        const cols = terminalInstance.current.cols;
+                        const rows = terminalInstance.current.rows;
+                        onResize(cols, rows);
+                    }
+                } catch (error) {
+                    console.warn("Terminal resize failed:", error);
+                }
+            }
+        });
+
+        resizeObserver.observe(terminalRef.current);
+
+        return () => {
+            resizeObserver.disconnect();
+        };
+    }, [onResize]);
+
     return (
         <div
             ref={terminalRef}

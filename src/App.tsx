@@ -12,6 +12,8 @@ interface TerminalWindow {
     isOpen: boolean;
     position: WindowPosition;
     connected: boolean;
+    width: number;
+    height: number;
 }
 
 export default function App() {
@@ -21,6 +23,8 @@ export default function App() {
             isOpen: false,
             position: { x: 100, y: 100 },
             connected: false,
+            width: 800,
+            height: 600,
         },
     ]);
     const [ws, setWs] = useState<WebSocket | null>(null);
@@ -33,6 +37,7 @@ export default function App() {
     const terminalRefs = useRef<{
         [key: string]: { writeData: (data: string) => void } | null;
     }>({});
+    const [windowInitialized, setWindowInitialized] = useState<{ [key: string]: boolean }>({});
 
     const handleTerminalClick = () => {
         setTerminalWindows((prev) =>
@@ -40,6 +45,9 @@ export default function App() {
                 window.id === "1" ? { ...window, isOpen: true } : window,
             ),
         );
+
+        // Reset initialization flag for this window
+        setWindowInitialized(prev => ({ ...prev, "1": false }));
 
         // Connect WebSocket when terminal is opened
         if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -180,6 +188,16 @@ export default function App() {
         terminalRefs.current[windowId] = ref;
     };
 
+    const handleWindowResize = (windowId: string, newWidth: number, newHeight: number) => {
+        setTerminalWindows((prev) =>
+            prev.map((window) =>
+                window.id === windowId
+                    ? { ...window, width: newWidth, height: newHeight }
+                    : window,
+            ),
+        );
+    };
+
     useEffect(() => {
         if (isDragging) {
             document.addEventListener("mousemove", handleMouseMove);
@@ -190,6 +208,46 @@ export default function App() {
             };
         }
     }, [isDragging, activeWindow, dragOffset, handleMouseMove, handleMouseUp]);
+
+    // Handle window resizing
+    useEffect(() => {
+        const resizeObservers: ResizeObserver[] = [];
+
+        terminalWindows.forEach((window) => {
+            if (window.isOpen) {
+                const windowElement = document.querySelector(
+                    `[data-window-id="${window.id}"]`
+                ) as HTMLElement;
+                
+                if (windowElement) {
+                    const resizeObserver = new ResizeObserver((entries) => {
+                        for (const entry of entries) {
+                            const { width, height } = entry.contentRect;
+                            
+                            // Skip if window hasn't been initialized yet
+                            if (!windowInitialized[window.id]) {
+                                setWindowInitialized(prev => ({ ...prev, [window.id]: true }));
+                                return;
+                            }
+                            
+                            // Only resize if the dimensions are significantly different
+                            if (Math.abs(width - window.width) > 10 || Math.abs(height - window.height) > 10) {
+                                handleWindowResize(window.id, width, height);
+                            }
+                        }
+                    });
+                    
+                    // Start observing immediately but skip first resize
+                    resizeObserver.observe(windowElement);
+                    resizeObservers.push(resizeObserver);
+                }
+            }
+        });
+
+        return () => {
+            resizeObservers.forEach((observer) => observer.disconnect());
+        };
+    }, [terminalWindows, windowInitialized]);
 
     return (
         <div className="desktop">
@@ -208,10 +266,24 @@ export default function App() {
                         <div
                             key={window.id}
                             className="terminal-window"
+                            data-window-id={window.id}
                             style={{
                                 left: window.position.x,
                                 top: window.position.y,
+                                width: window.width,
+                                height: window.height,
                                 zIndex: activeWindow === window.id ? 1000 : 1,
+                            }}
+                            onMouseDown={(e) => {
+                                // Only handle drag if not clicking on resize handle
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const x = e.clientX - rect.left;
+                                const y = e.clientY - rect.top;
+                                const isResizeHandle = x > rect.width - 20 && y > rect.height - 20;
+                                
+                                if (!isResizeHandle) {
+                                    handleMouseDown(e, window.id);
+                                }
                             }}
                         >
                             <div
