@@ -193,7 +193,8 @@ export default function App() {
 
     const handleMouseUp = useCallback(() => {
         setIsDragging(false);
-        setActiveWindow(null);
+        // Don't clear activeWindow - keep the window on top
+        // setActiveWindow(null);
         
         // Remove dragging class from all windows
         document.querySelectorAll('.vscode-window, .terminal-window').forEach(element => {
