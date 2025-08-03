@@ -489,7 +489,8 @@ export default function App() {
                                         title="VSCode"
                                         style={{ width: "100%", height: "100%" }}
                                         onMouseDown={(e) => e.stopPropagation()}
-                                        sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-top-navigation-by-user-activation allow-presentation allow-modals allow-downloads allow-storage-access-by-user-activation"
+                                        sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-top-navigation-by-user-activation allow-presentation allow-modals allow-downloads allow-storage-access-by-user-activation allow-top-navigation-by-user-activation"
+                                        allow="usb; serial; hid; cross-origin-isolated"
                                     />
                                 ) : (
                                     <div style={{ 
