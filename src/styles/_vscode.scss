@@ -1,0 +1,27 @@
+// VSCode Window Specific
+.vscode-window {
+    min-width: 800px;
+    min-height: 600px;
+
+    .vscode-content {
+        flex: 1;
+        background: #ffffff;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-height: 0;
+        height: 100%;
+        position: relative;
+
+        iframe {
+            border: none;
+            width: 100%;
+            height: 100%;
+            pointer-events: auto;
+        }
+
+        &.dragging iframe {
+            pointer-events: none;
+        }
+    }
+}

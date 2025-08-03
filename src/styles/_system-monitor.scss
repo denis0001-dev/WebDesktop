@@ -1,0 +1,16 @@
+// System Monitor Window Specific
+.system-monitor-window {
+    min-width: 500px;
+    min-height: 350px;
+
+    .system-monitor-content {
+        flex: 1;
+        background: #1e1e1e;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-height: 0;
+        height: 100%;
+        position: relative;
+    }
+}

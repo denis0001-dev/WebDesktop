@@ -1,0 +1,354 @@
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+// Desktop Environment
+.desktop {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+    // Desktop Background
+    .desktop-background {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1;
+
+        .desktop-content {
+            text-align: center;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+
+            h1 {
+                font-size: 3rem;
+                margin-bottom: 1rem;
+                font-weight: 300;
+            }
+
+            p {
+                font-size: 1.2rem;
+                opacity: 0.9;
+            }
+        }
+    }
+
+    // Taskbar
+    .taskbar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        z-index: 1000;
+
+        .taskbar-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+
+            .start-menu-btn {
+                width: 48px;
+                height: 48px;
+                background: rgba(255, 255, 255, 0.1);
+                border: none;
+                border-radius: 8px;
+                color: white;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 20px;
+                transition: all 0.2s ease;
+                backdrop-filter: blur(10px);
+
+                &:hover {
+                    background: rgba(255, 255, 255, 0.2);
+                    transform: scale(1.05);
+                }
+
+                .start-icon {
+                    font-size: 20px;
+                }
+            }
+        }
+
+        .taskbar-center {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+        }
+
+        .taskbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+
+            .server-status {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 12px;
+                border-radius: 6px;
+                font-size: 12px;
+                color: white;
+                background: rgba(255, 255, 255, 0.1);
+                backdrop-filter: blur(10px);
+
+                &.connected {
+                    background: rgba(76, 175, 80, 0.2);
+                }
+
+                &.disconnected {
+                    background: rgba(244, 67, 54, 0.2);
+                }
+
+                .status-dot {
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    background: currentColor;
+                }
+            }
+
+            .terminal-btn,
+            .vscode-btn,
+            .system-monitor-btn {
+                width: 48px;
+                height: 48px;
+                background: rgba(255, 255, 255, 0.1);
+                border: none;
+                border-radius: 8px;
+                color: white;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 20px;
+                transition: all 0.2s ease;
+                backdrop-filter: blur(10px);
+
+                &:hover {
+                    background: rgba(255, 255, 255, 0.2);
+                    transform: scale(1.05);
+                }
+
+                .terminal-icon,
+                .vscode-icon,
+                .system-monitor-icon {
+                    font-size: 20px;
+                }
+            }
+        }
+    }
+
+    // Window Base Styles
+    .terminal-window,
+    .vscode-window,
+    .system-monitor-window {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 8px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        overflow: hidden;
+        resize: both;
+        min-width: 500px;
+        min-height: 350px;
+
+        &::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(-45deg, transparent 30%, rgba(0, 0, 0, 0.3) 30%, rgba(0, 0, 0, 0.3) 40%, transparent 40%, transparent 60%, rgba(0, 0, 0, 0.3) 60%, rgba(0, 0, 0, 0.3) 70%, transparent 70%);
+            cursor: se-resize;
+            pointer-events: none;
+            border-radius: 2px;
+        }
+
+        .window-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.9);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            cursor: move;
+            user-select: none;
+
+            .window-title {
+                font-weight: 500;
+                color: #333;
+                font-size: 14px;
+            }
+
+            .window-controls {
+                display: flex;
+                gap: 8px;
+
+                .window-close {
+                    width: 20px;
+                    height: 20px;
+                    border: none;
+                    background: #ff6b6b;
+                    color: white;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 12px;
+                    transition: all 0.2s ease;
+
+                    &:hover {
+                        background: #ff5252;
+                        transform: scale(1.1);
+                    }
+                }
+            }
+        }
+
+        &.dragging {
+            .window-content {
+                pointer-events: none;
+            }
+        }
+    }
+
+    // Terminal Window Specific
+    .terminal-window {
+        min-width: 800px;
+        min-height: 600px;
+
+        .terminal-content {
+            flex: 1;
+            background: #1e1e1e;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+            height: 100%;
+            position: relative;
+
+            .terminal-container {
+                flex: 1;
+                padding: 0;
+                margin: 0;
+                display: flex;
+                flex-direction: column;
+
+                .xterm {
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                    background-color: #1e1e1e !important;
+
+                    .xterm-viewport {
+                        overflow-y: auto;
+                        overflow-x: hidden;
+                    }
+                }
+            }
+        }
+    }
+
+    // VSCode Window Specific
+    .vscode-window {
+        min-width: 800px;
+        min-height: 600px;
+
+        .vscode-content {
+            flex: 1;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+            height: 100%;
+            position: relative;
+
+            iframe {
+                border: none;
+                width: 100%;
+                height: 100%;
+                pointer-events: auto;
+            }
+
+            &.dragging iframe {
+                pointer-events: none;
+            }
+        }
+    }
+
+    // System Monitor Window Specific
+    .system-monitor-window {
+        min-width: 500px;
+        min-height: 350px;
+
+        .system-monitor-content {
+            flex: 1;
+            background: #1e1e1e;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+            height: 100%;
+            position: relative;
+        }
+    }
+}
+
+// Spinner Animation
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+    .desktop {
+        .taskbar {
+            padding: 0 10px;
+
+            .taskbar-right {
+                gap: 5px;
+
+                .terminal-btn,
+                .vscode-btn,
+                .system-monitor-btn {
+                    width: 40px;
+                    height: 40px;
+                    font-size: 16px;
+                }
+            }
+        }
+
+        .terminal-window,
+        .vscode-window,
+        .system-monitor-window {
+            min-width: 300px;
+            min-height: 200px;
+        }
+    }
+}

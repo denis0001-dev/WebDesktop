@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import "./App.css";
+import "./App.scss";
 import DesktopBackground from "./components/DesktopBackground";
 import TerminalWindow from "./components/TerminalWindow";
 import VSCodeWindow from "./components/VSCodeWindow";
