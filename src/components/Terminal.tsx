@@ -20,6 +20,18 @@ export default function TerminalComponent({
     const terminalRef = useRef<HTMLDivElement>(null);
     const terminalInstance = useRef<Terminal | null>(null);
     const fitAddon = useRef<FitAddon | null>(null);
+    
+    // Use refs to access latest callback values
+    const onDataRef = useRef(onData);
+    const onResizeRef = useRef(onResize);
+    const isConnectedRef = useRef(isConnected);
+    
+    // Update refs when props change
+    useEffect(() => {
+        onDataRef.current = onData;
+        onResizeRef.current = onResize;
+        isConnectedRef.current = isConnected;
+    }, [onData, onResize, isConnected]);
 
     useEffect(() => {
         if (!terminalRef.current) {
@@ -85,14 +97,14 @@ export default function TerminalComponent({
         // Handle terminal data
         terminal.onData((data) => {
             // Only send data if we're connected
-            if (isConnected) {
-                onData(data);
+            if (isConnectedRef.current) {
+                onDataRef.current(data);
             }
         });
 
         // Handle terminal resize
         terminal.onResize(({ cols, rows }) => {
-            onResize(cols, rows);
+            onResizeRef.current(cols, rows);
         });
 
         // Handle window resize
@@ -116,7 +128,7 @@ export default function TerminalComponent({
             terminalInstance.current = null;
             fitAddon.current = null;
         };
-    }, [isConnected, onData, onResize]);
+    }, []); // Empty dependency array - terminal is created only once
 
     // Handle incoming data from WebSocket
     useEffect(() => {
@@ -159,7 +171,7 @@ export default function TerminalComponent({
                     if (terminalInstance.current) {
                         const cols = terminalInstance.current.cols;
                         const rows = terminalInstance.current.rows;
-                        onResize(cols, rows);
+                        onResizeRef.current(cols, rows);
                     }
                 } catch (error) {
                     console.warn("Terminal resize failed:", error);
@@ -172,7 +184,7 @@ export default function TerminalComponent({
         return () => {
             resizeObserver.disconnect();
         };
-    }, [onResize]);
+    }, []); // Empty dependency array - observer is created only once
 
     return (
         <div
