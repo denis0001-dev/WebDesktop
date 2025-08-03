@@ -5,6 +5,9 @@ import { createServer } from "http";
 import path from "path";
 import { fileURLToPath } from "url";
 import * as pty from "@lydell/node-pty";
+import { spawn, ChildProcess } from "child_process";
+import { createServer as createNetServer } from "net";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,6 +18,10 @@ const wss = new WebSocketServer({ server });
 
 // Global shell reference
 let shell: pty.IPty | null = null;
+
+// Global code-server reference
+let codeServerProcess: ChildProcess | null = null;
+let codeServerPort: number | null = null;
 
 function createShell() {
     if (shell) {
@@ -32,6 +39,104 @@ function createShell() {
     });
 
     return shell;
+}
+
+function startCodeServer(): Promise<{ url: string; port: number }> {
+    return new Promise((resolve, reject) => {
+        if (codeServerProcess) {
+            // Code-server is already running
+            resolve({ url: `http://localhost:${codeServerPort}`, port: codeServerPort! });
+            return;
+        }
+
+        // Create settings directory and file for dark theme
+        const settingsDir = path.join(__dirname, '../.vscode-server/User');
+        const settingsFile = path.join(settingsDir, 'settings.json');
+        
+        try {
+            // Ensure settings directory exists
+            if (!existsSync(settingsDir)) {
+                mkdirSync(settingsDir, { recursive: true });
+            }
+            
+            // Create or update settings file with dark theme
+            const settings = {
+                "workbench.colorTheme": "Default Dark+",
+                "workbench.preferredDarkColorTheme": "Default Dark+",
+                "workbench.preferredLightColorTheme": "Default Dark+"
+            };
+            
+            writeFileSync(settingsFile, JSON.stringify(settings, null, 2));
+        } catch (error) {
+            console.warn('Could not create VSCode settings file:', error);
+        }
+
+        // Find an available port starting from 8080
+        const findAvailablePort = (startPort: number): Promise<number> => {
+            return new Promise((resolve) => {
+                const server = createNetServer();
+                server.listen(startPort, () => {
+                    const address = server.address();
+                    const port = typeof address === 'object' && address ? address.port : startPort;
+                    server.close(() => resolve(port));
+                });
+                server.on('error', () => {
+                    findAvailablePort(startPort + 1).then(resolve);
+                });
+            });
+        };
+
+        findAvailablePort(8080).then((port) => {
+            codeServerPort = port;
+            
+            // Start code-server
+            codeServerProcess = spawn('npx', ['code-server', 
+                '--port', port.toString(),
+                '--host', '0.0.0.0',
+                '--auth', 'none',
+                '--disable-telemetry',
+                '--user-data-dir', path.join(__dirname, '../.vscode-server'),
+                '--extensions-dir', path.join(__dirname, '../.vscode-extensions'),
+                process.cwd() // Open current directory
+            ], {
+                stdio: 'pipe',
+                env: { ...process.env, PWD: process.cwd() }
+            });
+
+            codeServerProcess.stdout?.on('data', (data: Buffer) => {
+                console.log(`Code-server: ${data.toString()}`);
+            });
+
+            codeServerProcess.stderr?.on('data', (data: Buffer) => {
+                console.log(`Code-server error: ${data.toString()}`);
+            });
+
+            codeServerProcess.on('error', (error: Error) => {
+                console.error('Failed to start code-server:', error);
+                reject(error);
+            });
+
+            codeServerProcess.on('exit', (code: number) => {
+                if (code !== 0) {
+                    console.error(`Code-server exited with code ${code}`);
+                    reject(new Error(`Code-server exited with code ${code}`));
+                }
+            });
+
+            // Wait a bit for code-server to start
+            setTimeout(() => {
+                resolve({ url: `http://localhost:${port}`, port });
+            }, 2000);
+        });
+    });
+}
+
+function stopCodeServer() {
+    if (codeServerProcess) {
+        codeServerProcess.kill();
+        codeServerProcess = null;
+        codeServerPort = null;
+    }
 }
 
 // Middleware
@@ -57,6 +162,31 @@ app.get("/api/system", (req, res) => {
         memory: process.memoryUsage(),
         cpu: process.cpuUsage(),
     });
+});
+
+// VSCode API endpoint
+app.post("/api/vscode/start", async (req, res) => {
+    try {
+        const { url, port } = await startCodeServer();
+        res.json({ url, port });
+    } catch (error) {
+        console.error('Error starting VSCode:', error);
+        res.status(500).json({ 
+            error: 'Failed to start VSCode',
+            message: error instanceof Error ? error.message : 'Unknown error',
+            details: 'Make sure code-server is installed: npm install code-server --save-dev'
+        });
+    }
+});
+
+app.post("/api/vscode/stop", (req, res) => {
+    try {
+        stopCodeServer();
+        res.json({ message: 'VSCode stopped' });
+    } catch (error) {
+        console.error('Error stopping VSCode:', error);
+        res.status(500).json({ error: 'Failed to stop VSCode' });
+    }
 });
 
 // WebSocket connection handling

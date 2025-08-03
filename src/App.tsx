@@ -16,6 +16,16 @@ interface TerminalWindow {
     height: number;
 }
 
+interface VSCodeWindow {
+    id: string;
+    isOpen: boolean;
+    position: WindowPosition;
+    width: number;
+    height: number;
+    loading: boolean;
+    url: string | null;
+}
+
 export default function App() {
     const [terminalWindows, setTerminalWindows] = useState<TerminalWindow[]>([
         {
@@ -23,8 +33,19 @@ export default function App() {
             isOpen: false,
             position: { x: 100, y: 100 },
             connected: false,
-            width: 800,
-            height: 600,
+            width: 800, // Will be adjusted when terminal is ready
+            height: 600, // Will be adjusted when terminal is ready
+        },
+    ]);
+    const [vscodeWindows, setVscodeWindows] = useState<VSCodeWindow[]>([
+        {
+            id: "1",
+            isOpen: false,
+            position: { x: 200, y: 200 },
+            width: 1200,
+            height: 800,
+            loading: false,
+            url: null,
         },
     ]);
     const [ws, setWs] = useState<WebSocket | null>(null);
@@ -35,7 +56,9 @@ export default function App() {
     const [isDragging, setIsDragging] = useState(false);
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
     const terminalRefs = useRef<{
-        [key: string]: { writeData: (data: string) => void } | null;
+        [key: string]: { 
+            writeData: (data: string) => void;
+        } | null;
     }>({});
     const [windowInitialized, setWindowInitialized] = useState<{ [key: string]: boolean }>({});
 
@@ -55,6 +78,55 @@ export default function App() {
         }
     };
 
+    const handleVSCodeClick = async () => {
+        setVscodeWindows((prev) =>
+            prev.map((window) =>
+                window.id === "1" ? { ...window, isOpen: true, loading: true } : window,
+            ),
+        );
+
+        // Start code-server on the backend
+        try {
+            const response = await fetch('http://localhost:3001/api/vscode/start', {
+                method: 'POST',
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                setVscodeWindows((prev) =>
+                    prev.map((window) =>
+                        window.id === "1" ? { ...window, loading: false, url: data.url } : window,
+                    ),
+                );
+            } else {
+                const errorData = await response.json();
+                console.error('Failed to start VSCode:', errorData);
+                setVscodeWindows((prev) =>
+                    prev.map((window) =>
+                        window.id === "1" ? { ...window, loading: false } : window,
+                    ),
+                );
+                alert(`Failed to start VSCode: ${errorData.message || errorData.error}\n\n${errorData.details || ''}`);
+            }
+        } catch (error) {
+            console.error('Error starting VSCode:', error);
+            setVscodeWindows((prev) =>
+                prev.map((window) =>
+                    window.id === "1" ? { ...window, loading: false } : window,
+                ),
+            );
+            alert('Failed to connect to VSCode server. Make sure the backend is running.');
+        }
+    };
+
+    const handleVSCodeClose = (windowId: string) => {
+        setVscodeWindows((prev) =>
+            prev.map((window) =>
+                window.id === windowId ? { ...window, isOpen: false, url: null } : window,
+            ),
+        );
+    };
+
     const handleWindowClose = (windowId: string) => {
         setTerminalWindows((prev) =>
             prev.map((window) =>
@@ -72,12 +144,31 @@ export default function App() {
             x: e.clientX - rect.left,
             y: e.clientY - rect.top,
         });
+        
+        // Add dragging class to the window
+        const windowElement = e.currentTarget.closest('.vscode-window, .terminal-window');
+        if (windowElement) {
+            windowElement.classList.add('dragging');
+        }
     };
 
     const handleMouseMove = useCallback(
         (e: MouseEvent) => {
             if (isDragging && activeWindow) {
                 setTerminalWindows((prev) =>
+                    prev.map((window) =>
+                        window.id === activeWindow
+                            ? {
+                                  ...window,
+                                  position: {
+                                      x: e.clientX - dragOffset.x,
+                                      y: e.clientY - dragOffset.y,
+                                  },
+                              }
+                            : window,
+                    ),
+                );
+                setVscodeWindows((prev) =>
                     prev.map((window) =>
                         window.id === activeWindow
                             ? {
@@ -98,6 +189,11 @@ export default function App() {
     const handleMouseUp = useCallback(() => {
         setIsDragging(false);
         setActiveWindow(null);
+        
+        // Remove dragging class from all windows
+        document.querySelectorAll('.vscode-window, .terminal-window').forEach(element => {
+            element.classList.remove('dragging');
+        });
     }, []);
 
     // WebSocket connection function
@@ -183,7 +279,9 @@ export default function App() {
 
     const setTerminalRef = (
         windowId: string,
-        ref: { writeData: (data: string) => void } | null,
+        ref: { 
+            writeData: (data: string) => void;
+        } | null,
     ) => {
         terminalRefs.current[windowId] = ref;
     };
@@ -231,7 +329,7 @@ export default function App() {
                             }
                             
                             // Only resize if the dimensions are significantly different
-                            if (Math.abs(width - window.width) > 10 || Math.abs(height - window.height) > 10) {
+                            if (Math.abs(width - window.width) > 5 || Math.abs(height - window.height) > 5) {
                                 handleWindowResize(window.id, width, height);
                             }
                         }
@@ -318,6 +416,99 @@ export default function App() {
                     ),
             )}
 
+            {/* VSCode Windows */}
+            {vscodeWindows.map(
+                (window) =>
+                    window.isOpen && (
+                        <div
+                            key={window.id}
+                            className="vscode-window"
+                            data-window-id={window.id}
+                            style={{
+                                left: window.position.x,
+                                top: window.position.y,
+                                width: window.width,
+                                height: window.height,
+                                zIndex: activeWindow === window.id ? 1000 : 1,
+                            }}
+                            onMouseDown={(e) => {
+                                // Only handle drag if not clicking on resize handle
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const x = e.clientX - rect.left;
+                                const y = e.clientY - rect.top;
+                                const isResizeHandle = x > rect.width - 20 && y > rect.height - 20;
+                                
+                                if (!isResizeHandle) {
+                                    handleMouseDown(e, window.id);
+                                }
+                            }}
+                        >
+                            <div
+                                className="window-header"
+                                onMouseDown={(e) =>
+                                    handleMouseDown(e, window.id)
+                                }
+                            >
+                                <div className="window-title">VSCode</div>
+                                <div className="window-controls">
+                                    <button
+                                        className="window-close"
+                                        onClick={() =>
+                                            handleVSCodeClose(window.id)
+                                        }
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="vscode-content">
+                                {window.loading ? (
+                                    <div style={{ 
+                                        display: 'flex', 
+                                        flexDirection: 'column', 
+                                        alignItems: 'center', 
+                                        justifyContent: 'center', 
+                                        height: '100%',
+                                        color: '#666'
+                                    }}>
+                                        <div style={{ 
+                                            width: '40px', 
+                                            height: '40px', 
+                                            border: '4px solid #f3f3f3', 
+                                            borderTop: '4px solid #3498db', 
+                                            borderRadius: '50%', 
+                                            animation: 'spin 1s linear infinite',
+                                            marginBottom: '16px'
+                                        }}></div>
+                                        <p>Starting VSCode...</p>
+                                        <p style={{ fontSize: '12px', marginTop: '8px' }}>This may take a few seconds</p>
+                                    </div>
+                                ) : window.url ? (
+                                    <iframe
+                                        src={window.url}
+                                        title="VSCode"
+                                        style={{ width: "100%", height: "100%" }}
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                        sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-top-navigation-by-user-activation allow-presentation allow-modals allow-downloads allow-storage-access-by-user-activation"
+                                    />
+                                ) : (
+                                    <div style={{ 
+                                        display: 'flex', 
+                                        flexDirection: 'column', 
+                                        alignItems: 'center', 
+                                        justifyContent: 'center', 
+                                        height: '100%',
+                                        color: '#666'
+                                    }}>
+                                        <p>VSCode not available.</p>
+                                        <p style={{ fontSize: '12px', marginTop: '8px' }}>Click the VSCode button to start</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ),
+            )}
+
             {/* Taskbar */}
             <div className="taskbar">
                 <div className="taskbar-left">
@@ -341,6 +532,13 @@ export default function App() {
                         title="Terminal"
                     >
                         <span className="terminal-icon">⌨</span>
+                    </button>
+                    <button
+                        className="vscode-btn"
+                        onClick={handleVSCodeClick}
+                        title="VSCode"
+                    >
+                        <span className="vscode-icon">💻</span>
                     </button>
                 </div>
             </div>
