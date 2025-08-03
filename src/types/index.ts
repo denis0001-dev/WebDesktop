@@ -22,6 +22,32 @@ export interface VSCodeWindow {
     url: string | null;
 }
 
+export interface SystemMonitorWindow {
+    id: string;
+    isOpen: boolean;
+    position: WindowPosition;
+    width: number;
+    height: number;
+    data: {
+        cpu: number;
+        memory: {
+            total: number;
+            used: number;
+            free: number;
+        };
+        disk: {
+            total: number;
+            used: number;
+            free: number;
+        };
+        network: {
+            rx: number;
+            tx: number;
+        };
+        uptime: number;
+    } | null;
+}
+
 export type ServerStatus = "connecting" | "connected" | "disconnected";
 
 export interface TerminalRef {

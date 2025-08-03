@@ -3,10 +3,12 @@ import "./App.css";
 import DesktopBackground from "./components/DesktopBackground";
 import TerminalWindow from "./components/TerminalWindow";
 import VSCodeWindow from "./components/VSCodeWindow";
+import SystemMonitorWindow from "./components/SystemMonitorWindow";
 import Taskbar from "./components/Taskbar";
 import { useWindowDrag } from "./hooks/useWindowDrag";
 import { useTerminal } from "./hooks/useTerminal";
 import { useVSCode } from "./hooks/useVSCode";
+import { useSystemMonitor } from "./hooks/useSystemMonitor";
 import { WebSocketService } from "./services/websocket";
 import type { ServerStatus } from "./types";
 
@@ -40,6 +42,13 @@ export default function App() {
         handleVSCodeClose,
         updateVSCodeWindow,
     } = useVSCode();
+
+    const {
+        systemMonitorWindows,
+        handleSystemMonitorClick,
+        handleSystemMonitorClose,
+        updateSystemMonitorWindow,
+    } = useSystemMonitor();
 
     // WebSocket service initialization
     useEffect(() => {
@@ -163,9 +172,11 @@ export default function App() {
                 updateTerminalWindow(windowId, { position });
             } else if (windowId.startsWith('vscode-')) {
                 updateVSCodeWindow(windowId, { position });
+            } else if (windowId.startsWith('system-monitor-')) {
+                updateSystemMonitorWindow(windowId, { position });
             }
         }
-    }, [handleMouseMove, updateTerminalWindow, updateVSCodeWindow]);
+    }, [handleMouseMove, updateTerminalWindow, updateVSCodeWindow, updateSystemMonitorWindow]);
 
     // Update mouse move handler to use window drag
     useEffect(() => {
@@ -214,10 +225,22 @@ export default function App() {
                 />
             ))}
 
+            {/* System Monitor Windows */}
+            {systemMonitorWindows.map((window) => (
+                <SystemMonitorWindow
+                    key={window.id}
+                    window={window}
+                    activeWindow={activeWindow}
+                    onMouseDown={handleMouseDown}
+                    onClose={handleSystemMonitorClose}
+                />
+            ))}
+
             <Taskbar
                 serverStatus={serverStatus}
                 onTerminalClick={handleTerminalOpen}
                 onVSCodeClick={handleVSCodeClick}
+                onSystemMonitorClick={handleSystemMonitorClick}
             />
         </div>
     );

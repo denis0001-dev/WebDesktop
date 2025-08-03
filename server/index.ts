@@ -5,9 +5,10 @@ import { createServer } from "http";
 import path from "path";
 import { fileURLToPath } from "url";
 import * as pty from "@lydell/node-pty";
-import { spawn, ChildProcess } from "child_process";
+import { spawn, ChildProcess, exec } from "child_process";
 import { createServer as createNetServer } from "net";
 import { existsSync, mkdirSync, writeFileSync } from "fs";
+import os from "os";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -188,6 +189,93 @@ app.post("/api/vscode/stop", (req, res) => {
         res.status(500).json({ error: 'Failed to stop VSCode' });
     }
 });
+
+// System stats endpoint
+app.get("/api/system/stats", async (req, res) => {
+    try {
+        const stats = await getSystemStats();
+        res.json(stats);
+    } catch (error) {
+        console.error('Error getting system stats:', error);
+        res.status(500).json({ error: 'Failed to get system stats' });
+    }
+});
+
+async function getSystemStats() {
+    const cpuUsage = await getCPUUsage();
+    const memoryInfo = getMemoryInfo();
+    const diskInfo = await getDiskInfo();
+    const networkInfo = await getNetworkInfo();
+    const uptime = process.uptime();
+
+    return {
+        cpu: cpuUsage,
+        memory: memoryInfo,
+        disk: diskInfo,
+        network: networkInfo,
+        uptime: uptime,
+    };
+}
+
+async function getCPUUsage(): Promise<number> {
+    return new Promise((resolve) => {
+        const startUsage = process.cpuUsage();
+        setTimeout(() => {
+            const endUsage = process.cpuUsage(startUsage);
+            const totalUsage = endUsage.user + endUsage.system;
+            const totalTime = totalUsage / 1000000; // Convert to seconds
+            const cpuUsage = Math.min(100, Math.round(totalTime * 100));
+            resolve(cpuUsage);
+        }, 100);
+    });
+}
+
+function getMemoryInfo() {
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    const usedMem = totalMem - freeMem;
+
+    return {
+        total: totalMem,
+        used: usedMem,
+        free: freeMem,
+    };
+}
+
+async function getDiskInfo() {
+    return new Promise((resolve) => {
+        exec('df / | tail -1', (error: Error | null, stdout: string) => {
+            if (error) {
+                resolve({ total: 0, used: 0, free: 0 });
+                return;
+            }
+            
+            const parts = stdout.trim().split(/\s+/);
+            const total = parseInt(parts[1]) * 1024; // Convert KB to bytes
+            const used = parseInt(parts[2]) * 1024;
+            const free = parseInt(parts[3]) * 1024;
+            
+            resolve({ total, used, free });
+        });
+    });
+}
+
+async function getNetworkInfo() {
+    return new Promise((resolve) => {
+        exec('cat /proc/net/dev | grep -E "(eth0|en0|wlan0|wl0)" | head -1', (error: Error | null, stdout: string) => {
+            if (error) {
+                resolve({ rx: 0, tx: 0 });
+                return;
+            }
+            
+            const parts = stdout.trim().split(/\s+/);
+            const rx = parseInt(parts[1]) || 0;
+            const tx = parseInt(parts[9]) || 0;
+            
+            resolve({ rx, tx });
+        });
+    });
+}
 
 // WebSocket connection handling
 wss.on("connection", (ws) => {

@@ -4,12 +4,14 @@ interface TaskbarProps {
     serverStatus: ServerStatus;
     onTerminalClick: () => void;
     onVSCodeClick: () => void;
+    onSystemMonitorClick: () => void;
 }
 
 export default function Taskbar({
     serverStatus,
     onTerminalClick,
     onVSCodeClick,
+    onSystemMonitorClick,
 }: TaskbarProps) {
     return (
         <div className="taskbar">
@@ -41,6 +43,13 @@ export default function Taskbar({
                     title="VSCode"
                 >
                     <span className="vscode-icon">💻</span>
+                </button>
+                <button
+                    className="system-monitor-btn"
+                    onClick={onSystemMonitorClick}
+                    title="System Monitor"
+                >
+                    <span className="system-monitor-icon">📊</span>
                 </button>
             </div>
         </div>
