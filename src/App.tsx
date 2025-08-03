@@ -29,7 +29,7 @@ interface VSCodeWindow {
 export default function App() {
     const [terminalWindows, setTerminalWindows] = useState<TerminalWindow[]>([
         {
-            id: "1",
+            id: "terminal-1",
             isOpen: false,
             position: { x: 100, y: 100 },
             connected: false,
@@ -39,7 +39,7 @@ export default function App() {
     ]);
     const [vscodeWindows, setVscodeWindows] = useState<VSCodeWindow[]>([
         {
-            id: "1",
+            id: "vscode-1",
             isOpen: false,
             position: { x: 200, y: 200 },
             width: 1200,
@@ -65,12 +65,12 @@ export default function App() {
     const handleTerminalClick = () => {
         setTerminalWindows((prev) =>
             prev.map((window) =>
-                window.id === "1" ? { ...window, isOpen: true } : window,
+                window.id === "terminal-1" ? { ...window, isOpen: true } : window,
             ),
         );
 
         // Reset initialization flag for this window
-        setWindowInitialized(prev => ({ ...prev, "1": false }));
+        setWindowInitialized(prev => ({ ...prev, "terminal-1": false }));
 
         // Connect WebSocket when terminal is opened
         if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -81,7 +81,7 @@ export default function App() {
     const handleVSCodeClick = async () => {
         setVscodeWindows((prev) =>
             prev.map((window) =>
-                window.id === "1" ? { ...window, isOpen: true, loading: true } : window,
+                window.id === "vscode-1" ? { ...window, isOpen: true, loading: true } : window,
             ),
         );
 
@@ -95,7 +95,7 @@ export default function App() {
                 const data = await response.json();
                 setVscodeWindows((prev) =>
                     prev.map((window) =>
-                        window.id === "1" ? { ...window, loading: false, url: data.url } : window,
+                        window.id === "vscode-1" ? { ...window, loading: false, url: data.url } : window,
                     ),
                 );
             } else {
@@ -103,7 +103,7 @@ export default function App() {
                 console.error('Failed to start VSCode:', errorData);
                 setVscodeWindows((prev) =>
                     prev.map((window) =>
-                        window.id === "1" ? { ...window, loading: false } : window,
+                        window.id === "vscode-1" ? { ...window, loading: false } : window,
                     ),
                 );
                 alert(`Failed to start VSCode: ${errorData.message || errorData.error}\n\n${errorData.details || ''}`);
@@ -112,7 +112,7 @@ export default function App() {
             console.error('Error starting VSCode:', error);
             setVscodeWindows((prev) =>
                 prev.map((window) =>
-                    window.id === "1" ? { ...window, loading: false } : window,
+                    window.id === "vscode-1" ? { ...window, loading: false } : window,
                 ),
             );
             alert('Failed to connect to VSCode server. Make sure the backend is running.');
@@ -155,32 +155,37 @@ export default function App() {
     const handleMouseMove = useCallback(
         (e: MouseEvent) => {
             if (isDragging && activeWindow) {
-                setTerminalWindows((prev) =>
-                    prev.map((window) =>
-                        window.id === activeWindow
-                            ? {
-                                  ...window,
-                                  position: {
-                                      x: e.clientX - dragOffset.x,
-                                      y: e.clientY - dragOffset.y,
-                                  },
-                              }
-                            : window,
-                    ),
-                );
-                setVscodeWindows((prev) =>
-                    prev.map((window) =>
-                        window.id === activeWindow
-                            ? {
-                                  ...window,
-                                  position: {
-                                      x: e.clientX - dragOffset.x,
-                                      y: e.clientY - dragOffset.y,
-                                  },
-                              }
-                            : window,
-                    ),
-                );
+                // Check if it's a terminal window by ID prefix
+                if (activeWindow.startsWith('terminal-')) {
+                    setTerminalWindows((prev) =>
+                        prev.map((window) =>
+                            window.id === activeWindow
+                                ? {
+                                      ...window,
+                                      position: {
+                                          x: e.clientX - dragOffset.x,
+                                          y: e.clientY - dragOffset.y,
+                                      },
+                                  }
+                                : window,
+                        ),
+                    );
+                } else if (activeWindow.startsWith('vscode-')) {
+                    // It's a VSCode window
+                    setVscodeWindows((prev) =>
+                        prev.map((window) =>
+                            window.id === activeWindow
+                                ? {
+                                      ...window,
+                                      position: {
+                                          x: e.clientX - dragOffset.x,
+                                          y: e.clientY - dragOffset.y,
+                                      },
+                                  }
+                                : window,
+                        ),
+                    );
+                }
             }
         },
         [isDragging, activeWindow, dragOffset],
@@ -370,7 +375,7 @@ export default function App() {
                                 top: window.position.y,
                                 width: window.width,
                                 height: window.height,
-                                zIndex: activeWindow === window.id ? 1000 : 1,
+                                zIndex: activeWindow === window.id ? 1000 : 100,
                             }}
                             onMouseDown={(e) => {
                                 // Only handle drag if not clicking on resize handle
@@ -429,7 +434,7 @@ export default function App() {
                                 top: window.position.y,
                                 width: window.width,
                                 height: window.height,
-                                zIndex: activeWindow === window.id ? 1000 : 1,
+                                zIndex: activeWindow === window.id ? 1000 : 100,
                             }}
                             onMouseDown={(e) => {
                                 // Only handle drag if not clicking on resize handle
