@@ -132,6 +132,47 @@ body {
   font-size: 18px;
 }
 
+/* Server status indicator */
+.server-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  margin-right: 10px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.server-status.connected .status-dot {
+  background: #00ff00;
+  box-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
+}
+
+.server-status.connecting .status-dot {
+  background: #ffff00;
+  box-shadow: 0 0 8px rgba(255, 255, 0, 0.5);
+  animation: pulse 1s infinite;
+}
+
+.server-status.disconnected .status-dot {
+  background: #ff0000;
+  box-shadow: 0 0 8px rgba(255, 0, 0, 0.5);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 /* Terminal window */
 .terminal-window {
   position: absolute;
@@ -195,73 +236,29 @@ body {
 /* Terminal content */
 .terminal-content {
   flex: 1;
-  padding: 16px;
   background: rgba(28, 28, 28, 0.95);
-  color: #e0e0e0;
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-  font-size: 14px;
-  line-height: 1.5;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
-.terminal-output {
-  flex: 1;
-  overflow-y: auto;
-  margin-bottom: 8px;
-  padding-right: 8px;
+.terminal-container {
+  width: 100%;
+  height: 100%;
+  padding: 0;
 }
 
-.terminal-output::-webkit-scrollbar {
-  width: 8px;
+/* xterm.js overrides */
+.terminal-container .xterm {
+  padding: 0;
 }
 
-.terminal-output::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
+.terminal-container .xterm-viewport {
+  background-color: #1e1e1e !important;
 }
 
-.terminal-output::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 4px;
-}
-
-.terminal-output::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
-}
-
-.terminal-line {
-  margin-bottom: 2px;
-  word-wrap: break-word;
-}
-
-.terminal-input-line {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 0;
-}
-
-.terminal-prompt {
-  color: #00ff00;
-  font-weight: bold;
-  user-select: none;
-}
-
-.terminal-input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: #e0e0e0;
-  font-family: inherit;
-  font-size: inherit;
-  outline: none;
-  caret-color: #00ff00;
-}
-
-.terminal-input::placeholder {
-  color: rgba(224, 224, 224, 0.5);
+.terminal-container .xterm-screen {
+  background-color: #1e1e1e !important;
 }
 
 /* Responsive design */
